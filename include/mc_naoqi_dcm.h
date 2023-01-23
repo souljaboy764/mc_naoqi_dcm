@@ -1,17 +1,9 @@
 #pragma once
-#include <alcommon/almodule.h>
+#include <qi/anyvalue.hpp>
+#include <qi/session.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_ptr.hpp>
-#include <althread/almutex.h>
 #include "RobotModule.h"
-
-namespace AL
-{
-class ALBroker;
-class ALMemoryFastAccess;
-class DCMProxy;
-class ALMemoryProxy;
-}
 
 namespace mc_naoqi_dcm
 {
@@ -20,7 +12,7 @@ namespace mc_naoqi_dcm
  * Supported robots are PEPPER and NAO, but it should be suitable to for
  * extension to other Softbank Robotics robots.
  */
-class MCNAOqiDCM : public AL::ALModule
+class MCNAOqiDCM
 {
  public:
   /**
@@ -29,8 +21,7 @@ class MCNAOqiDCM : public AL::ALModule
    * @param broker A smart pointer to the broker (communication object)
    * @param name The name of the module
    */
-  MCNAOqiDCM(boost::shared_ptr<AL::ALBroker> pBroker,
-                const std::string &pName);
+  MCNAOqiDCM(qi::SessionPtr session);
 
   virtual ~MCNAOqiDCM();
 
@@ -43,13 +34,9 @@ class MCNAOqiDCM : public AL::ALModule
   /*! Enable/disable turning off wheels on bumper pressed */
   void bumperSafetyReflex(bool state);
 
- private:
   /*! Initialisation of ALMemory/DCM link */
   void init();
-
-  /*! ALMemory fast access */
-  void initFastAccess();
-
+  
   /*!  Connect callback to the DCM preproccess */
   void connectToDCMloop();
 
@@ -122,7 +109,7 @@ class MCNAOqiDCM : public AL::ALModule
    */
   void createAliasPrepareCommand(std::string aliasName,
                                  const std::vector<std::string> &mem_keys,
-                                 AL::ALValue& ledCommands,
+                                 std::vector<qi::AnyValue>& ledCommands,
                                  std::string updateType="ClearAll");
   // Create aliases for all leg groups defined in robot module
   void createLedAliases();
@@ -158,56 +145,10 @@ class MCNAOqiDCM : public AL::ALModule
   // check if preProces is connected
   bool isPreProccessConnected();
 
- private:
-  // Used for preprocess sync with the DCM
-  ProcessSignalConnection fDCMPreProcessConnection;
-
-  // Used to check id preprocess is connected
-  bool preProcessConnected = false;
-
-  // Used for fast memory access
-  boost::shared_ptr<AL::ALMemoryFastAccess> fMemoryFastAccess;
-
-  // Store sensor values.
-  std::vector<float> sensorValues;
-  boost::shared_ptr<AL::DCMProxy> dcmProxy;
-
-  // Memory proxy
-  boost::shared_ptr<AL::ALMemoryProxy> memoryProxy;
-
   /**
   * This method will be called every time the bumper press event is raised
   */
   void onBumperPressed();
-
-  // Used for sending joint position commands every 12ms in callback
-  std::vector<float> jointPositionCommands;
-
-  // Used to store joint possition command to set via DCM every 12ms
-  AL::ALValue commands;
-
-  // joint stiffness command for DCM
-  AL::ALValue jointStiffnessCommands;
-
-  /**
-   * Store command to send to leds
-   */
-
-  // map led group name to corresponding RGB or intensity commands
-  std::map<std::string, std::vector<AL::ALValue>> ledCmdMap;
-
-  /**
-   * Store commands to send to wheels (speed and stiffness)
-   */
-  AL::ALValue wheelsCommands;
-  AL::ALValue wheelsStiffnessCommands;
-
-  /**
-   * \brief The RobotModule describes the sensors names and their corresponding
-   * naoqi keys. The intent is to have a generic dcm module for both NAO and
-   * PEPPER robots.
-   */
-  RobotModule robot_module;
 
   /**
    * Total number of sensors to be read from the memeory
@@ -229,6 +170,54 @@ class MCNAOqiDCM : public AL::ALModule
    * Ordered wheels actuator names
    */
   std::vector<std::string> wheelNames() const;
+
+ private:
+  // Used for preprocess sync with the DCM
+  qi::AnyObject fDCMPreProcessConnection;
+
+  // Used to check id preprocess is connected
+  bool preProcessConnected = false;
+
+  // Store sensor values.
+  std::vector<float> sensorValues;
+  qi::AnyObject dcmProxy;
+
+  // Memory proxy
+  qi::AnyObject memoryProxy;
+
+  // Used for sending joint position commands every 12ms in callback
+  std::vector<qi::AnyValue> jointPositionCommands;
+
+  // Used to store joint possition command to set via DCM every 12ms
+  std::vector<qi::AnyValue> commands;
+
+  // joint stiffness command for DCM
+  std::vector<qi::AnyValue> jointStiffnessCommands;
+
+  /**
+   * Store command to send to leds
+   */
+
+  // map led group name to corresponding RGB or intensity commands
+  std::map<std::string, std::vector<std::vector<qi::AnyValue>>> ledCmdMap;
+
+  /**
+   * Store commands to send to wheels (speed and stiffness)
+   */
+  std::vector<qi::AnyValue> wheelsCommands;
+  std::vector<qi::AnyValue> wheelsStiffnessCommands;
+
+  /**
+   * \brief The RobotModule describes the sensors names and their corresponding
+   * naoqi keys. The intent is to have a generic dcm module for both NAO and
+   * PEPPER robots.
+   */
+  RobotModule robot_module;
+
+  qi::SessionPtr session_;
+
 };
 
+// Bind methods to make them accessible through proxies
+QI_REGISTER_MT_OBJECT(MCNAOqiDCM, MCNAOqiDCM::startLoop, MCNAOqiDCM::stopLoop, MCNAOqiDCM::isPreProccessConnected, MCNAOqiDCM::setStiffness, MCNAOqiDCM::setJointAngles, MCNAOqiDCM::getJointOrder, MCNAOqiDCM::getSensorsOrder, MCNAOqiDCM::numSensors, MCNAOqiDCM::bumperNames, MCNAOqiDCM::tactileSensorNames, MCNAOqiDCM::wheelNames, MCNAOqiDCM::getSensors, MCNAOqiDCM::getRobotName, MCNAOqiDCM::sayText, MCNAOqiDCM::setLeds, MCNAOqiDCM::isetLeds, MCNAOqiDCM::blink, MCNAOqiDCM::onBumperPressed, MCNAOqiDCM::bumperSafetyReflex, MCNAOqiDCM::setWheelsStiffness, MCNAOqiDCM::setWheelSpeed);
 } /* mc_naoqi_dcm */

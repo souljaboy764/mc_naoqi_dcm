@@ -1,18 +1,43 @@
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1.1)
+
 project(mc_naoqi_dcm)
-set(ROBOT_NAME "pepper" CACHE STRING "Build with this robot (pepper|nao)")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
+set (CMAKE_CXX_STANDARD 11)
 
-find_package(qibuild)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
+find_package(qi REQUIRED)
+find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS 
+  filesystem 
+  thread 
+  program_options
+  random
+  locale
+  chrono
+)
 
-message(STATUS "Building with ${ROBOT_NAME} robot")
-if("${ROBOT_NAME}" STREQUAL "pepper")
-  add_definitions(-DPEPPER)
-elseif("${ROBOT_NAME}" STREQUAL "nao")
-  add_definitions(-DNAO)
-else()
-  message( FATAL_ERROR "Only PEPPER and NAO robots are supported" )
-endif()
 
-include_directories(include)
-include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
-add_subdirectory(src)
+set(SOURCES
+    src/main.cpp
+    src/mc_naoqi_dcm.cpp
+    src/RobotModule.cpp
+    src/NAORobotModule.cpp
+    src/PepperRobotModule.cpp
+)
+
+# set(HEADERS
+#     include/mc_naoqi_dcm.h
+#     include/RobotModule.h
+#     include/NAORobotModule.h
+#     include/PepperRobotModule.h
+# )
+
+include_directories(include/ ${QI_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+add_executable(mc_naoqi_dcm ${SOURCES})# ${HEADERS})
+target_link_libraries(mc_naoqi_dcm ${QI_LIBRARIES} ${Boost_LIBRARIES} crypto)
+
+install(TARGETS mc_naoqi_dcm
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
