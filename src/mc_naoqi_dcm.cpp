@@ -2,12 +2,10 @@
 /// Enables connection of a preproccess callback to DCM loop for sending joint commands every 12ms
 /// Implemented for both NAO and PEPPER robots.
 
+#include <iostream>
 #include <algorithm>
-
-// #include <qi/anyobject.hpp>
-// #include <qi/anyvalue.hpp>
-
-// #include <boost/bind.hpp>
+#include <chrono>
+#include <thread>
 
 #include "mc_naoqi_dcm.h"
 #include "NAORobotModule.h"
@@ -37,7 +35,7 @@ MCNAOqiDCM::MCNAOqiDCM(qi::SessionPtr session)
 
   // Get the memoryProxy proxy
   try{
-    memoryProxy = session_->service("memoryProxy");
+    memoryProxy = session_->service("ALMemory");
   }catch (const std::exception &e){
     throw std::runtime_error(std::string("MCNAOqiDCM::MCNAOqiDCM(): Impossible to create memoryProxy Proxy : ") + e.what());
   }
@@ -59,8 +57,13 @@ MCNAOqiDCM::MCNAOqiDCM(qi::SessionPtr session)
 
   // Save initial sensor values into 'jointPositionCommands'
   for (int i = 0; i < robot_module.actuators.size(); i++){
-    jointPositionCommands.push_back(memoryProxy.call<qi::AnyValue>("getData", robot_module.setActuatorKeys[i]));
-    sensorValues.push_back(jointPositionCommands[i].toFloat());
+    std::cout << robot_module.readSensorKeys[i] << " : " << memoryProxy.call<qi::AnyValue>("getData", robot_module.readSensorKeys[i]).toFloat() << std::endl;
+    jointPositionCommands.push_back(memoryProxy.call<qi::AnyValue>("getData", robot_module.readSensorKeys[i]));
+  }
+  std::cout<<std::endl;
+
+  for (int i = 0; i < robot_module.sensors.size(); i++){
+    sensorValues.push_back(memoryProxy.call<qi::AnyValue>("getData", robot_module.readSensorKeys[i]).toFloat());
   }
 
   // Send initial command to the actuators
@@ -92,7 +95,6 @@ MCNAOqiDCM::~MCNAOqiDCM()
   setWheelSpeed(0.0f, 0.0f, 0.0f);
   setStiffness(0.0f);
   setWheelsStiffness(0.0f);
-  stopLoop();
 }
 
 // Enable/disable mobile base safety reflex
@@ -111,29 +113,10 @@ void MCNAOqiDCM::bumperSafetyReflex(bool state)
   }
 }
 
-// Start loop
-void MCNAOqiDCM::startLoop()
-{
-  connectToDCMloop();
-  preProcessConnected = true;
-}
-
-// Stop loop
-void MCNAOqiDCM::stopLoop()
-{
-  // Remove the preProcess callback connection
-  // fDCMPreProcessConnection.disconnect(0);
-  preProcessConnected = false;
-}
-
 void MCNAOqiDCM::onBumperPressed() {
   // Turn off wheels
   setWheelsStiffness(0.0f);
   setWheelSpeed(0.0f, 0.0f, 0.0f);
-}
-
-bool MCNAOqiDCM::isPreProccessConnected(){
-  return preProcessConnected;
 }
 
 void MCNAOqiDCM::init()
@@ -197,7 +180,7 @@ void MCNAOqiDCM::createAliasPrepareCommand(std::string aliasName,
   // alias created succesfully
   // prepare command for this alias to be set via DCM 'setAlias' call
   alias_command.reserve(6);
-  alias_command.resize(4);
+  alias_command.resize(6);
   alias_command[0] = qi::AnyReference::from(aliasName);
   alias_command[1] = qi::AnyReference::from(updateType);
   alias_command[2] = qi::AnyReference::from("time-separate");
@@ -329,8 +312,28 @@ void MCNAOqiDCM::setStiffness(const float &stiffnessValue)
 void MCNAOqiDCM::setJointAngles(std::vector<float> jointValues)
 {
   // update values in the vector that is used to send joint commands every 12ms
-  for(int i=0;i<jointValues.size();i++)
+  for(int i=0;i<robot_module.actuators.size();i++)
     jointPositionCommands[i] = qi::AnyReference::from(jointValues[i]);
+
+  int DCMtime;
+  try
+  {
+    DCMtime = dcmProxy.call<int>("getTime", 0);
+  }
+  catch(const std::exception& e)
+  {
+    throw std::runtime_error(std::string("MCNAOqiDCM::setJointAngles(): Error on DCM getTime : ") + e.what());
+  }
+
+  commands[4][0] = qi::AnyReference::from(DCMtime);
+  for (unsigned i = 0; i < robot_module.actuators.size(); i++){
+    commands[5][i][0] = qi::AnyReference::from(jointPositionCommands[i]);
+  }
+  try{
+    dcmProxy.call<void>("setAlias", commands);
+  }catch(const std::exception& e){
+    throw std::runtime_error(std::string("MCNAOqiDCM::setJointAngles(): Error when sending command to DCM : ") + e.what());
+  }
 }
 
 std::vector<std::string> MCNAOqiDCM::getJointOrder() const
@@ -380,54 +383,10 @@ std::vector<std::string> MCNAOqiDCM::wheelNames() const
 std::vector<float> MCNAOqiDCM::getSensors()
 {
   // Get all values from memoryProxy using fastaccess
-  for (int i = 0; i < robot_module.actuators.size(); i++)
-    sensorValues[i] = memoryProxy.call<qi::AnyValue>("getData", robot_module.setActuatorKeys[i]).toFloat();
+  for (int i = 0; i < robot_module.sensors.size(); i++)
+    sensorValues[i] = memoryProxy.call<qi::AnyValue>("getData", robot_module.readSensorKeys[i]).toFloat();
   return sensorValues;
 }
-
-void MCNAOqiDCM::connectToDCMloop()
-{
-  // Connect callback to the DCM pre proccess
-  // try{
-  //   //  onPreProcess is useful because it’s called just before the computation of orders sent to the chestboard (USB). Sending commands at this level means that you have the shortest delay to your command.
-  //   fDCMPreProcessConnection =
-  //       dcmProxy.call<qi::AnyObject>("atPreProcess", boost::bind(&MCNAOqiDCM::synchronisedDCMcallback, this));
-  //       // what happens if I add it twice? add same callback while it is already added? try in python?
-  // }catch (const std::exception &e){
-  //   throw std::runtime_error(std::string("MCNAOqiDCM::connectToDCMloop(): Error when connecting to DCM preProccess: ") + e.what());
-  // }
-
-}
-
-// using 'jointActuator' alias created 'command'
-// that will use data from 'jointPositionCommands' to send it to DCM every 12 ms
-void MCNAOqiDCM::synchronisedDCMcallback()
-{
-  int DCMtime;
-  try
-  {
-    DCMtime = dcmProxy.call<int>("getTime", 0);
-  }
-  catch(const std::exception& e)
-  {
-    throw std::runtime_error(std::string("MCNAOqiDCM::synchronisedDCMcallback(): Error on DCM getTime : ") + e.what());
-  }
-
-  commands[4][0]= qi::AnyReference::from(DCMtime);
-
-  // XXX make this faster with memcpy?
-  for (unsigned i = 0; i < robot_module.actuators.size(); i++){
-    // new actuator value = latest values from jointPositionCommands
-    commands[5][i][0] = qi::AnyReference::from(jointPositionCommands[i]);
-  }
-
-  try{
-    dcmProxy.call<void>("setAlias", commands);
-  }catch(const std::exception& e){
-    throw std::runtime_error(std::string("MCNAOqiDCM::synchronisedDCMcallback(): Error when sending command to DCM : ") + e.what());
-  }
-}
-
 
 void MCNAOqiDCM::sayText(const std::string &toSay)
 {

@@ -25,32 +25,11 @@ class MCNAOqiDCM
 
   virtual ~MCNAOqiDCM();
 
-  /*! Start the example */
-  void startLoop();
-
-  /*! Stop the example */
-  void stopLoop();
-
   /*! Enable/disable turning off wheels on bumper pressed */
   void bumperSafetyReflex(bool state);
 
   /*! Initialisation of ALMemory/DCM link */
   void init();
-  
-  /*!  Connect callback to the DCM preproccess */
-  void connectToDCMloop();
-
-  /**
-  * @brief Callback called by the DCM every 12ms
-  *
-  *  Once this method is connected to DCM preprocess
-  *  it will be called in Real Time every 12 milliseconds from DCM thread
-  *  Dynamic allocation and system call are strictly forbidden in this method
-  *  Computation time in this section must remain as short as possible to prevent
-  *  erratic move or joint getting loose.
-  *
-  */
-  void synchronisedDCMcallback();
 
   /**
    * @brief Set one hardness value to all joint
@@ -142,9 +121,6 @@ class MCNAOqiDCM
   // blink
   void blink();
 
-  // check if preProces is connected
-  bool isPreProccessConnected();
-
   /**
   * This method will be called every time the bumper press event is raised
   */
@@ -172,12 +148,6 @@ class MCNAOqiDCM
   std::vector<std::string> wheelNames() const;
 
  private:
-  // Used for preprocess sync with the DCM
-  qi::AnyObject fDCMPreProcessConnection;
-
-  // Used to check id preprocess is connected
-  bool preProcessConnected = false;
-
   // Store sensor values.
   std::vector<float> sensorValues;
   qi::AnyObject dcmProxy;
@@ -208,7 +178,7 @@ class MCNAOqiDCM
   std::vector<qi::AnyValue> wheelsStiffnessCommands;
 
   /**
-   * \brief The RobotModule describes the sensors names and their corresponding
+   *brief The RobotModule describes the sensors names and their corresponding
    * naoqi keys. The intent is to have a generic dcm module for both NAO and
    * PEPPER robots.
    */
@@ -218,6 +188,25 @@ class MCNAOqiDCM
 
 };
 
-// Bind methods to make them accessible through proxies
-QI_REGISTER_MT_OBJECT(MCNAOqiDCM, MCNAOqiDCM::startLoop, MCNAOqiDCM::stopLoop, MCNAOqiDCM::isPreProccessConnected, MCNAOqiDCM::setStiffness, MCNAOqiDCM::setJointAngles, MCNAOqiDCM::getJointOrder, MCNAOqiDCM::getSensorsOrder, MCNAOqiDCM::numSensors, MCNAOqiDCM::bumperNames, MCNAOqiDCM::tactileSensorNames, MCNAOqiDCM::wheelNames, MCNAOqiDCM::getSensors, MCNAOqiDCM::getRobotName, MCNAOqiDCM::sayText, MCNAOqiDCM::setLeds, MCNAOqiDCM::isetLeds, MCNAOqiDCM::blink, MCNAOqiDCM::onBumperPressed, MCNAOqiDCM::bumperSafetyReflex, MCNAOqiDCM::setWheelsStiffness, MCNAOqiDCM::setWheelSpeed);
 } /* mc_naoqi_dcm */
+
+// Bind methods to make them accessible through proxies
+QI_REGISTER_MT_OBJECT(mc_naoqi_dcm::MCNAOqiDCM,
+                        setStiffness,
+                        setJointAngles,
+                        getJointOrder,
+                        getSensorsOrder,
+                        numSensors,
+                        bumperNames,
+                        tactileSensorNames,
+                        wheelNames,
+                        getSensors,
+                        getRobotName,
+                        sayText,
+                        setLeds,
+                        isetLeds,
+                        blink,
+                        onBumperPressed,
+                        bumperSafetyReflex,
+                        setWheelsStiffness,
+                        setWheelSpeed);

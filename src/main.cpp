@@ -32,7 +32,8 @@
 
 // }  // extern "C"
 
-
+#include <string>
+#include <qi/session.hpp>
 #include <qi/applicationsession.hpp>
 #include <boost/shared_ptr.hpp>
 #include "mc_naoqi_dcm.h"
