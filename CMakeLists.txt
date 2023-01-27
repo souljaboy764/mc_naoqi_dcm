@@ -28,7 +28,6 @@ else()
 endif()
 
 set(SOURCES
-    src/main.cpp
     src/mc_naoqi_dcm.cpp
     src/RobotModule.cpp
     src/NAORobotModule.cpp
@@ -36,8 +35,11 @@ set(SOURCES
 )
 
 include_directories(include/ ${QI_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
-add_executable(mc_naoqi_dcm ${SOURCES})
+add_executable(mc_naoqi_dcm src/main.cpp ${SOURCES})
 target_link_libraries(mc_naoqi_dcm ${QI_LIBRARIES} ${Boost_LIBRARIES} crypto)
+
+add_executable(test_qi_dcm utils/check_dcm.cpp ${SOURCES})
+target_link_libraries(test_qi_dcm ${QI_LIBRARIES} ${Boost_LIBRARIES} crypto)
 
 install(TARGETS mc_naoqi_dcm
   RUNTIME DESTINATION bin
