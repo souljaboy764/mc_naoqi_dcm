@@ -3,20 +3,27 @@
 
 import qi
 import sys
+import time
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--ip", help="IP Address of Pepper", required=True)
+parser.add_argument("--port", help="Port of Pepper (default: 9559)", default="9559")
+args = parser.parse_args()
 
 # Connect to Naoqi session
 session = qi.Session()
 try:
-    session.connect("tcp://192.168.100.172:9559")
+    session.connect("tcp://"+args.ip+":"+args.port)
 except RuntimeError:
-    print ("Can't connect to Naoqi at 192.168.100.172:9559.\n"
+    print ("Can't connect to Naoqi at ip \"" + args.ip + "\" on port " + args.port +".\n"
            "Please check your script arguments. Run with -h option for help.")
     sys.exit(1)
 
 # Access the module
 mcnaoqidcm_service  = session.service("MCNAOqiDCM")
 print(session.services())
-print(mcnaoqidcm_service)
 # Check if the callback is connected to DCM loop
 # print("Is callback connected to DCM: " + str(mcnaoqidcm_service.getSensors()))
-print("Is callback connected to DCM: ", mcnaoqidcm_service.setJointAngles([-0.0061359405517578125, -0.027611732482910156, -0.007669925689697266, 1.5707, 0.4451, 1.5661944150924683, 0.14266014099121094, -1.2011067867279053, -0.4939417839050293, -0.08901405334472656, 0.6818981170654297, 1.5677282810211182, -0.14266014099121094, 1.2011070251464844, 0.49240779876708984, 0.13034796714782715, 0.6757469177246094, 0.320000022649765, 0.5760000348091125, 0.12800000607967377, 0.09600000083446503, 0.19200000166893005, 0.1600000113248825, 0.0, 0.1600000113248825]))
+mcnaoqidcm_service.setStiffness(1.0)
+print("Is callback connected to DCM: ", mcnaoqidcm_service.setJointAngles([0.0, -0.023009777069091797, -0.009203910827636719, 0., 0., 1.7656118869781494, 0.07363104820251465, -1.7180583477020264, -0.11351466178894043, -1.5907998085021973, 0.6810193061828613, 1.7395341396331787, -0.07363104820251465, 1.699650764465332, 0.10431075096130371, -1.5892658233642578, 0.6757469177246094, 0.7040000557899475, 1.0880000591278076, 0.1600000113248825, 0.1600000113248825, 0.4480000138282776, 0.0, 0.09600000083446503, 0.09600000083446503, 0.0, 0.0, 0.01600000075995922, 0.06400000303983688, 0.06400000303983688, 0.0, 0.06400000303983688, 0.0, 0.03200000151991844, -0.21076172590255737, -0.1341211050748825, -9.92496109008789, 0.0007989483419805765, 0.0007989483419805765, -0.001065264455974102, -0.010737720876932144, -0.016681846231222153, 0.0070946612395346165, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0][:17]))
+time.sleep(2)
