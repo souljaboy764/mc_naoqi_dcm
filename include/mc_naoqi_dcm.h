@@ -88,7 +88,7 @@ class MCNAOqiDCM
    */
   void createAliasPrepareCommand(std::string aliasName,
                                  const std::vector<std::string> &mem_keys,
-                                 std::vector<qi::AnyValue>& ledCommands,
+                                 std::vector<std::vector<std::vector<qi::AnyValue>>>& ledCommands,
                                  std::string updateType="ClearAll");
   // Create aliases for all leg groups defined in robot module
   void createLedAliases();
@@ -156,26 +156,23 @@ class MCNAOqiDCM
   qi::AnyObject memoryProxy;
 
   // Used for sending joint position commands every 12ms in callback
-  std::vector<qi::AnyValue> jointPositionCommands;
-
-  // Used to store joint possition command to set via DCM every 12ms
-  std::vector<qi::AnyValue> commands;
+  std::vector<std::vector <std::vector <qi::AnyValue>>> jointPositionCommands;
 
   // joint stiffness command for DCM
-  std::vector<qi::AnyValue> jointStiffnessCommands;
+  std::vector<std::vector <std::vector <qi::AnyValue>>> jointStiffnessCommands;
 
   /**
    * Store command to send to leds
    */
 
   // map led group name to corresponding RGB or intensity commands
-  std::map<std::string, std::vector<std::vector<qi::AnyValue>>> ledCmdMap;
+  std::map<std::string, std::vector<std::vector<std::vector<std::vector<qi::AnyValue>>>>> ledCmdMap;
 
   /**
    * Store commands to send to wheels (speed and stiffness)
    */
-  std::vector<qi::AnyValue> wheelsCommands;
-  std::vector<qi::AnyValue> wheelsStiffnessCommands;
+  std::vector<std::vector <std::vector <qi::AnyValue>>> wheelsCommands;
+  std::vector<std::vector <std::vector <qi::AnyValue>>> wheelsStiffnessCommands;
 
   /**
    *brief The RobotModule describes the sensors names and their corresponding
