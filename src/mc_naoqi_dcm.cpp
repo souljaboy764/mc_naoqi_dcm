@@ -44,7 +44,7 @@ MCNAOqiDCM::MCNAOqiDCM(qi::SessionPtr session)
 	// initialize sensor reading/setting
 	init();
 	getSensors();
-	setStiffness(1.0f);
+	setStiffness(0.0f);
 	setJointAngles(std::vector<float>(sensorValues.begin(), sensorValues.begin()+robot_module.actuators.size()));
 }
 
