@@ -40,21 +40,7 @@ struct RobotModule
   std::vector<std::string> sensors;
   // Memory keys to read all sensors with single call to ALMemoryFastAccess
   std::vector<std::string> readSensorKeys;
-  // IMU sensor names
-  std::vector<std::string> imu = {"AccelerometerX", "AccelerometerY", "AccelerometerZ",
-                                  "GyroscopeX", "GyroscopeY", "GyroscopeZ",
-                                  "AngleX", "AngleY", "AngleZ"};
-  // Groups of special robot joints (e.g. wheels)
-  std::vector<JointGroup> specialJointGroups;
-  // Groups of RGB leds
-  std::vector<rgbLedGroup> rgbLedGroups;
-  // Groups of single channel leds
-  std::vector<iLedGroup> iLedGroups;
-  // Bumpers
-  std::vector<std::string> bumpers;
-  // Tactile sensors
-  std::vector<std::string> tactile;
-
+  
   // Generate memory keys
   void genMemoryKeys(std::string prefix, std::vector<std::string> &devices, std::string postfix,
                      std::vector<std::string> &memory_keys,

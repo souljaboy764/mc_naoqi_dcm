@@ -30,7 +30,6 @@ endif()
 set(SOURCES
     src/mc_naoqi_dcm.cpp
     src/RobotModule.cpp
-    src/NAORobotModule.cpp
     src/PepperRobotModule.cpp
 )
 
