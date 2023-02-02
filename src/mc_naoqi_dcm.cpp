@@ -2,9 +2,10 @@
 /// Enables connection of a preproccess callback to DCM loop for sending joint commands every 12ms
 /// Implemented for both NAO and PEPPER robots.
 
-#include <iostream>
 #include <algorithm>
 #include <chrono>
+#include <execution>
+#include <iostream>
 #include <thread>
 
 #include "mc_naoqi_dcm.h"
@@ -54,6 +55,11 @@ void MCNAOqiDCM::init()
 	// create 'jointStiffness' alias to be used for setting joint stiffness commands
 	createAliasPrepareCommand("jointStiffness", robot_module.setHardnessKeys, jointStiffnessCommands);
 	sensorValues = std::vector<float>(robot_module.sensors.size());
+	for(int i=0; i<robot_module.readSensorKeys.size();i++)
+		sensorIndex[robot_module.readSensorKeys[i]] = i;
+	
+	for(int i=0;i<robot_module.actuators.size();i++)
+		actuatorsIndex[robot_module.actuators[i]] = i;
 }
 
 // Modified from naoqi_dcm_driver
@@ -102,11 +108,21 @@ void MCNAOqiDCM::setStiffness(const float &stiffnessValue)
 		throw std::runtime_error(std::string("MCNAOqiDCM::setStiffness(): Error on DCM getTime : ") + e.what());
 	}
 	
-	for(int i=0;i<robot_module.actuators.size();i++)
-	{
-		jointStiffnessCommands[i][0][0] = qi::AnyValue::from<float>(stiffnessValue);
-		jointStiffnessCommands[i][0][1]= qi::AnyValue::from<int>(DCMtime);
-	}
+	// for(int i=0;i<robot_module.actuators.size();i++)
+	// {
+	// 	jointStiffnessCommands[i][0][0] = qi::AnyValue::from<float>(stiffnessValue);
+	// 	jointStiffnessCommands[i][0][1]= qi::AnyValue::from<int>(DCMtime);
+	// }
+	std::for_each(
+		std::execution::par,
+		robot_module.actuators.begin(),
+		robot_module.actuators.end(),
+		[&](std::string& item)
+		{
+			jointStiffnessCommands[actuatorsIndex[item]][0][0] = qi::AnyValue::from<float>(stiffnessValue);
+			jointStiffnessCommands[actuatorsIndex[item]][0][1] = qi::AnyValue::from<int>(DCMtime);
+		}
+	);
 
 	try{
 		dcmProxy.call<void>("setAlias", qi::AnyValue::from<std::vector<qi::AnyValue>>({
@@ -133,11 +149,22 @@ void MCNAOqiDCM::setJointAngles(std::vector<float> jointValues)
 		throw std::runtime_error(std::string("MCNAOqiDCM::setJointAngles(): Error on DCM getTime : ") + e.what());
 	}
 
-	for(int i=0;i<robot_module.actuators.size();i++)
-	{
-		jointPositionCommands[i][0][0] = qi::AnyValue::from<float>(jointValues[i]);
-		jointPositionCommands[i][0][1]= qi::AnyValue::from<int>(DCMtime);
-	}
+	// for(int i=0;i<robot_module.actuators.size();i++)
+	// {
+	// 	jointPositionCommands[i][0][0] = qi::AnyValue::from<float>(jointValues[i]);
+	// 	jointPositionCommands[i][0][1]= qi::AnyValue::from<int>(DCMtime);
+	// }
+
+	std::for_each(
+		std::execution::par,
+		robot_module.actuators.begin(),
+		robot_module.actuators.end(),
+		[&](std::string& item)
+		{
+			jointPositionCommands[actuatorsIndex[item]][0][0] = qi::AnyValue::from<float>(jointValues[actuatorsIndex[item]]);
+			jointPositionCommands[actuatorsIndex[item]][0][1] = qi::AnyValue::from<int>(DCMtime);
+		}
+	);
 	
 	try
 	{
@@ -177,8 +204,18 @@ int MCNAOqiDCM::numSensors() const
 std::vector<float> MCNAOqiDCM::getSensors()
 {
 	// Get all values from memoryProxy using fastaccess
-	for (int i = 0; i < robot_module.sensors.size(); i++)
-		sensorValues[i] = memoryProxy.call<qi::AnyValue>("getData", robot_module.readSensorKeys[i]).toFloat();
+	// for (int i = 0; i < robot_module.sensors.size(); i++)
+		// sensorValues[i] = memoryProxy.call<qi::AnyValue>("getData", robot_module.readSensorKeys[i]).toFloat();
+		// sensorValues[i] = *(memoryProxy.call<float*>("getFloatPtr", robot_module.readSensorKeys[i]));
+	std::for_each(
+		std::execution::par,
+		robot_module.readSensorKeys.begin(),
+		robot_module.readSensorKeys.end(),
+		[&](std::string& item)
+		{
+			sensorValues[sensorIndex[item]] = memoryProxy.call<qi::AnyValue>("getData", item).toFloat();
+		}
+	);
 	return sensorValues;
 }
 

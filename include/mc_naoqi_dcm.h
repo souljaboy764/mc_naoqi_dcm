@@ -92,6 +92,8 @@ class MCNAOqiDCM
  private:
   // Store sensor values.
   std::vector<float> sensorValues;
+  std::map<std::string, int> sensorIndex;
+  std::map<std::string, int> actuatorsIndex;
   qi::AnyObject dcmProxy;
 
   // Memory proxy
