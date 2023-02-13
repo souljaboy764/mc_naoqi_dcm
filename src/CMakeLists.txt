@@ -2,7 +2,6 @@ set(_srcs
     main.cpp
     mc_naoqi_dcm.cpp
     RobotModule.cpp
-    NAORobotModule.cpp
     PepperRobotModule.cpp
 )
 

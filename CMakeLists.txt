@@ -3,6 +3,7 @@ project(mc_naoqi_dcm)
 set(ROBOT_NAME "pepper" CACHE STRING "Build with this robot (pepper|nao)")
 
 find_package(qibuild)
+add_definitions(-std=gnu++11 -w)
 
 message(STATUS "Building with ${ROBOT_NAME} robot")
 if("${ROBOT_NAME}" STREQUAL "pepper")

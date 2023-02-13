@@ -7,8 +7,7 @@ PepperRobotModule::PepperRobotModule() : RobotModule()
   name = "pepper";
 
   // body joints
-  actuators = {"KneePitch", "HipPitch", "HipRoll", "HeadYaw", "HeadPitch",
-   	"LShoulderPitch", "LShoulderRoll", "LElbowYaw", "LElbowRoll", "LWristYaw", "LHand",
+  actuators = {"LShoulderPitch", "LShoulderRoll", "LElbowYaw", "LElbowRoll", "LWristYaw", "LHand",
    	"RShoulderPitch", "RShoulderRoll", "RElbowYaw", "RElbowRoll", "RWristYaw", "RHand"};
 
   // generate memory keys for sending commands to the joints (position/stiffness)
@@ -19,22 +18,6 @@ PepperRobotModule::PepperRobotModule() : RobotModule()
   // NB! Joint encoders must be in the beginning of the readSensorKeys/sensors
   genMemoryKeys("", actuators, "/Position/Sensor/Value", readSensorKeys, true, "Encoder");
   genMemoryKeys("", actuators, "/ElectricCurrent/Sensor/Value", readSensorKeys, true, "ElectricCurrent");
-  genMemoryKeys("InertialSensorBase/", imu, "/Sensor/Value", readSensorKeys, true);
-
-  // wheels - special joint groups
-  JointGroup wheels;
-  wheels.groupName = "wheels";
-  wheels.jointsNames = {"WheelFL", "WheelFR", "WheelB"};
-  genMemoryKeys("", wheels.jointsNames, "/Speed/Actuator/Value", wheels.setActuatorKeys);
-  genMemoryKeys("", wheels.jointsNames, "/Stiffness/Actuator/Value", wheels.setHardnessKeys);
-  specialJointGroups.push_back(wheels);
-  // add sensors for the special joint group
-  genMemoryKeys("", wheels.jointsNames, "/Speed/Sensor/Value", readSensorKeys, true, "Encoder");
-
-  // Bumpers
-  bumpers = {"FrontLeft", "FrontRight", "Back"};
-  genMemoryKeys("Platform/", bumpers, "/Bumper/Sensor/Value", readSensorKeys, true);
-
   // Tactile sensors
   tactile = {"Head/Touch/Front", "Head/Touch/Rear", "Head/Touch/Middle", "RHand/Touch/Back", "LHand/Touch/Back"};
   genMemoryKeys("", tactile, "/Sensor/Value", readSensorKeys, true);

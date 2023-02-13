@@ -40,9 +40,6 @@ class MCNAOqiDCM : public AL::ALModule
   /*! Stop the example */
   void stopLoop();
 
-  /*! Enable/disable turning off wheels on bumper pressed */
-  void bumperSafetyReflex(bool state);
-
  private:
   /*! Initialisation of ALMemory/DCM link */
   void init();
@@ -127,26 +124,6 @@ class MCNAOqiDCM : public AL::ALModule
   // Create aliases for all leg groups defined in robot module
   void createLedAliases();
 
-  /**
-   * @brief Set one hardness value to all wheels
-   *
-   * @param stiffnessValue
-   * Stiffness value that will be applied to all wheels
-   */
-  void setWheelsStiffness(const float &stiffnessValue);
-
-  /**
-   * @brief Set speed values to the wheels
-   *
-   * @param speed_fl
-   * Speed value that will be applied to front left wheel
-   * @param speed_fr
-   * Speed value that will be applied to front right wheel
-   * @param speed_b
-   * Speed value that will be applied to back wheel
-   */
-  void setWheelSpeed(const float &speed_fl, const float &speed_fr, const float &speed_b);
-
   // one led set function for all groups
   void setLeds(std::string ledGroupName, const float &r, const float &g, const float &b);
   void setLedsDelay(std::string ledGroupName, const float &r, const float &g, const float &b, const int& delay);
@@ -175,11 +152,6 @@ class MCNAOqiDCM : public AL::ALModule
   // Memory proxy
   boost::shared_ptr<AL::ALMemoryProxy> memoryProxy;
 
-  /**
-  * This method will be called every time the bumper press event is raised
-  */
-  void onBumperPressed();
-
   // Used for sending joint position commands every 12ms in callback
   std::vector<float> jointPositionCommands;
 
@@ -197,12 +169,6 @@ class MCNAOqiDCM : public AL::ALModule
   std::map<std::string, std::vector<AL::ALValue>> ledCmdMap;
 
   /**
-   * Store commands to send to wheels (speed and stiffness)
-   */
-  AL::ALValue wheelsCommands;
-  AL::ALValue wheelsStiffnessCommands;
-
-  /**
    * \brief The RobotModule describes the sensors names and their corresponding
    * naoqi keys. The intent is to have a generic dcm module for both NAO and
    * PEPPER robots.
@@ -216,19 +182,9 @@ class MCNAOqiDCM : public AL::ALModule
   int numSensors() const;
 
   /**
-   * Bumper sensor names
-   */
-  std::vector<std::string> bumperNames() const;
-
-  /**
    * Tactile sensor names
    */
   std::vector<std::string> tactileSensorNames() const;
-
-  /**
-   * Ordered wheels actuator names
-   */
-  std::vector<std::string> wheelNames() const;
 };
 
 } /* mc_naoqi_dcm */
