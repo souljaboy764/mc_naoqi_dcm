@@ -124,14 +124,6 @@ class MCNAOqiDCM : public AL::ALModule
   // Create aliases for all leg groups defined in robot module
   void createLedAliases();
 
-  // one led set function for all groups
-  void setLeds(std::string ledGroupName, const float &r, const float &g, const float &b);
-  void setLedsDelay(std::string ledGroupName, const float &r, const float &g, const float &b, const int& delay);
-  // Note: cannot bind mathods with the same name and different arguments
-  void isetLeds(std::string ledGroupName, const float &intensity);
-  // blink
-  void blink();
-
   // check if preProces is connected
   bool isPreProccessConnected();
 
@@ -162,13 +154,6 @@ class MCNAOqiDCM : public AL::ALModule
   AL::ALValue jointStiffnessCommands;
 
   /**
-   * Store command to send to leds
-   */
-
-  // map led group name to corresponding RGB or intensity commands
-  std::map<std::string, std::vector<AL::ALValue>> ledCmdMap;
-
-  /**
    * \brief The RobotModule describes the sensors names and their corresponding
    * naoqi keys. The intent is to have a generic dcm module for both NAO and
    * PEPPER robots.
@@ -180,11 +165,6 @@ class MCNAOqiDCM : public AL::ALModule
    * Allows to pre-set apropriate vector size for storing and updating all sensor readings
    */
   int numSensors() const;
-
-  /**
-   * Tactile sensor names
-   */
-  std::vector<std::string> tactileSensorNames() const;
 };
 
 } /* mc_naoqi_dcm */

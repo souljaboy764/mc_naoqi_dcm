@@ -3,28 +3,18 @@
 /// Implemented for both NAO and PEPPER robots.
 
 #include "mc_naoqi_dcm.h"
+#include "PepperRobotModule.h"
+
 #include <alcommon/albroker.h>
 #include <alcommon/almodule.h>
 #include <alcommon/alproxy.h>
-#include <algorithm>
-#include <boost/shared_ptr.hpp>
-#include "PepperRobotModule.h"
-
 #include <alerror/alerror.h>
-
-// Use DCM proxy
+#include <almemoryfastaccess/almemoryfastaccess.h>
+#include <alproxies/almemoryproxy.h>
 #include <alproxies/dcmproxy.h>
 
-// Used to read values of ALMemory directly in RAM
-#include <almemoryfastaccess/almemoryfastaccess.h>
-
-// Text to speech proxy
-#include <alproxies/altexttospeechproxy.h>
-
-// AlMemory proxy
-#include <alproxies/almemoryproxy.h>
-
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace mc_naoqi_dcm
 {
@@ -64,10 +54,6 @@ MCNAOqiDCM::MCNAOqiDCM(boost::shared_ptr<AL::ALBroker> broker, const std::string
   setReturn("sensors number", "int indicating total number of different sensors");
   BIND_METHOD(MCNAOqiDCM::numSensors);
 
-  functionName("tactileSensorNames", getName(), "get list of tactilr sensor names");
-  setReturn("tactile sensor names", "list of tactile sensor names");
-  BIND_METHOD(MCNAOqiDCM::tactileSensorNames);
-
   functionName("getSensors", getName(), "get all sensor values");
   setReturn("sensor values", "array containing values of all the sensors");
   BIND_METHOD(MCNAOqiDCM::getSensors);
@@ -75,26 +61,6 @@ MCNAOqiDCM::MCNAOqiDCM(boost::shared_ptr<AL::ALBroker> broker, const std::string
   functionName("getRobotName", getName(), "get robot name");
   setReturn("robot name", "name of the robot for which module was built <pepper|nao>");
   BIND_METHOD(MCNAOqiDCM::getRobotName);
-
-  functionName("sayText", getName(), "Say a given sentence.");
-  addParam("toSay", "The sentence to be said.");
-  BIND_METHOD(MCNAOqiDCM::sayText);
-
-  functionName("setLeds", getName(), "setLeds");
-  addParam("ledGroupName", "Name of the leds group from robot module");
-  addParam("r", "red intensity %");
-  addParam("g", "green intensity %");
-  addParam("b", "blue intensity %");
-  addParam("delay", "delay in ms");
-  BIND_METHOD(MCNAOqiDCM::setLeds);
-
-  functionName("isetLeds", getName(), "isetLeds");
-  addParam("ledGroupName", "Name of the leds group from robot module");
-  addParam("b", "blue intensity %");
-  BIND_METHOD(MCNAOqiDCM::isetLeds);
-
-  functionName("blink", getName(), "blink");
-  BIND_METHOD(MCNAOqiDCM::blink);
 
   // Create Pepper robot module
   robot_module = PepperRobotModule();
@@ -191,8 +157,6 @@ void MCNAOqiDCM::init()
   createAliasPrepareCommand("jointStiffness", robot_module.setHardnessKeys, jointStiffnessCommands);
   // keep body joints turned off at initialization
   setStiffness(0.0f);
-  // prepare commands for all led groups of robot_module
-  createLedAliases();
 }
 
 void MCNAOqiDCM::initFastAccess(){
@@ -230,49 +194,12 @@ void MCNAOqiDCM::createAliasPrepareCommand(std::string aliasName,
   alias_command[0] = std::string(aliasName);
   alias_command[1] = std::string(updateType);
   alias_command[2] = std::string("time-mixed");
-  // alias_command[3] = 0; // Importance level. Not yet implemented. Must be set to 0
-  // // placeholder for command time
-  // alias_command[4].arraySetSize(1);
-  // // placeholder for command values
-  // alias_command[5].arraySetSize(mem_keys.size());
-  // for (int i = 0; i < mem_keys.size(); i++){
-  //   // allocate space for a new value for a memory key to be set via setAlias call
-  //   alias_command[5][i].arraySetSize(1);
-  // }
   // placeholder for timed-command values
   alias_command[3].arraySetSize(mem_keys.size());
   for (int i = 0; i < mem_keys.size(); i++){
     // allocate space for a new value for a memory key to be set via setAlias call
     alias_command[3][i].arraySetSize(1);
     alias_command[3][i][0].arraySetSize(2);
-  }
-}
-
-void MCNAOqiDCM::createLedAliases()
-{
-  // RGB led groups
-  for(int i=0;i<robot_module.rgbLedGroups.size();i++){
-    const rgbLedGroup& leds = robot_module.rgbLedGroups[i];
-    AL::ALValue redLedCommands;
-    AL::ALValue greenLedCommands;
-    AL::ALValue blueLedCommands;
-    std::string rName = leds.groupName+std::string("Red");
-    std::string gName = leds.groupName+std::string("Green");
-    std::string bName = leds.groupName+std::string("Blue");
-    createAliasPrepareCommand(rName, leds.redLedKeys, redLedCommands, "Merge");
-    createAliasPrepareCommand(gName, leds.greenLedKeys, greenLedCommands, "Merge");
-    createAliasPrepareCommand(bName, leds.blueLedKeys, blueLedCommands, "Merge");
-    // map led group name to led commands
-    ledCmdMap[leds.groupName] = {redLedCommands, greenLedCommands, blueLedCommands};
-  }
-
-  // Single channel led groups
-  for(int i=0;i<robot_module.iLedGroups.size();i++){
-    const iLedGroup& leds = robot_module.iLedGroups[i];
-    AL::ALValue intensityLedCommands;
-    createAliasPrepareCommand(leds.groupName, leds.intensityLedKeys, intensityLedCommands, "Merge");
-    // map led group name to led commands
-    ledCmdMap[leds.groupName] = {intensityLedCommands};
   }
 }
 
@@ -285,7 +212,6 @@ void MCNAOqiDCM::setStiffness(const float &stiffnessValue)
   }catch (const AL::ALError &e){
     throw ALERROR(getName(), "setStiffness()", "Error on DCM getTime : " + e.toString());
   }
-
 
   for(int i=0;i<robot_module.actuators.size();i++){
     jointStiffnessCommands[3][i][0][0] = stiffnessValue;
@@ -323,11 +249,6 @@ std::string MCNAOqiDCM::getRobotName() const
 int MCNAOqiDCM::numSensors() const
 {
   return robot_module.readSensorKeys.size();
-}
-
-std::vector<std::string> MCNAOqiDCM::tactileSensorNames() const
-{
-  return robot_module.tactile;
 }
 
 // Method is not synchronized with DCM loop
@@ -378,125 +299,6 @@ void MCNAOqiDCM::synchronisedDCMcallback()
   }catch (const AL::ALError &e){
     throw ALERROR(getName(), "synchronisedDCMcallback()", "Error when sending command to DCM : " + e.toString());
   }
-}
-
-
-void MCNAOqiDCM::sayText(const std::string &toSay)
-{
-  try{
-    AL::ALTextToSpeechProxy tts(getParentBroker());
-    tts.say(toSay);
-  }catch (const AL::ALError &){
-    qiLogError("module.example") << "Could not get proxy to ALTextToSpeech" << std::endl;
-  }
-}
-
-
-void MCNAOqiDCM::setLeds(std::string ledGroupName, const float &r, const float &g, const float &b)
-{
-  int DCMtime;
-  try{
-    DCMtime = dcmProxy->getTime(0);
-  }catch (const AL::ALError &e){
-    throw ALERROR(getName(), "changeShouldersLeds()", "Error on DCM getTime : " + e.toString());
-  }
-
-  if(ledCmdMap.find(ledGroupName) != ledCmdMap.end()){
-    std::vector<AL::ALValue> &rgbCmnds = ledCmdMap[ledGroupName];
-
-    qiLogInfo("rgbCmnds[0].getSize()") << rgbCmnds[0].getSize() << std::endl;
-    qiLogInfo("rgbCmnds[0][3].getSize()") << rgbCmnds[0][3].getSize() << std::endl;
-
-
-    // set RGB values for every memory key of this led group
-    for (int i = 0; i < rgbCmnds[0][3].getSize(); i++){
-      rgbCmnds[0][3][i][0][0] = r;
-      rgbCmnds[1][3][i][0][0] = g;
-      rgbCmnds[2][3][i][0][0] = b;
-      rgbCmnds[0][3][i][0][1] = DCMtime;
-      rgbCmnds[1][3][i][0][1] = DCMtime;
-      rgbCmnds[2][3][i][0][1] = DCMtime;
-    }
-
-    try{
-      dcmProxy->setAlias(rgbCmnds[0]);
-      dcmProxy->setAlias(rgbCmnds[1]);
-      dcmProxy->setAlias(rgbCmnds[2]);
-    }catch (const AL::ALError &e){
-      throw ALERROR(getName(), "changeShouldersLeds()", "Error when sending command to DCM : " + e.toString());
-    }
-  }
-}
-
-void MCNAOqiDCM::setLedsDelay(std::string ledGroupName, const float &r, const float &g, const float &b, const int& delay)
-{
-  int DCMtime;
-  try{
-    DCMtime = dcmProxy->getTime(delay);
-  }catch (const AL::ALError &e){
-    throw ALERROR(getName(), "changeShouldersLeds()", "Error on DCM getTime : " + e.toString());
-  }
-
-  if(ledCmdMap.find(ledGroupName) != ledCmdMap.end()){
-    std::vector<AL::ALValue> &rgbCmnds = ledCmdMap[ledGroupName];
-
-    qiLogInfo("rgbCmnds[0].getSize()") << rgbCmnds[0].getSize() << std::endl;
-    qiLogInfo("rgbCmnds[0][3].getSize()") << rgbCmnds[0][3].getSize() << std::endl;
-
-    // set RGB values for every memory key of this led group
-    for (int i = 0; i < rgbCmnds[0][3].getSize(); i++){
-      rgbCmnds[0][3][i][0][0] = r;
-      rgbCmnds[1][3][i][0][0] = g;
-      rgbCmnds[2][3][i][0][0] = b;
-      rgbCmnds[0][3][i][0][1] = DCMtime;
-      rgbCmnds[1][3][i][0][1] = DCMtime;
-      rgbCmnds[2][3][i][0][1] = DCMtime;
-    }
-
-    try{
-      dcmProxy->setAlias(rgbCmnds[0]);
-      dcmProxy->setAlias(rgbCmnds[1]);
-      dcmProxy->setAlias(rgbCmnds[2]);
-    }catch (const AL::ALError &e){
-      throw ALERROR(getName(), "changeShouldersLeds()", "Error when sending command to DCM : " + e.toString());
-    }
-  }
-}
-
-void MCNAOqiDCM::isetLeds(std::string ledGroupName, const float &intensity)
-{
-  int DCMtime;
-  try{
-    DCMtime = dcmProxy->getTime(0);
-  }catch (const AL::ALError &e){
-    throw ALERROR(getName(), "changeShouldersLeds()", "Error on DCM getTime : " + e.toString());
-  }
-
-  std::vector<AL::ALValue> &intensityCmnds = ledCmdMap[ledGroupName];
-  // assert if intensityCmnds.size()==1, indeed single channel led group
-
-
-  // set intensity values for every memory key of this led group
-  for (int i = 0; i < intensityCmnds[0][3].getSize(); i++){
-    intensityCmnds[0][3][i][0][0] = intensity;
-    intensityCmnds[0][3][i][0][i] = DCMtime;
-  }
-
-  try{
-    dcmProxy->setAlias(intensityCmnds[0]);
-  }catch (const AL::ALError &e){
-    throw ALERROR(getName(), "changeShouldersLeds()", "Error when sending command to DCM : " + e.toString());
-  }
-}
-
-void MCNAOqiDCM::blink()
-{
-  // This is possible because led aliases update type is "Merge"
-  setLedsDelay("eyesPeripheral", 0.0, 0.0, 0.0, 75);
-  setLedsDelay("eyesPeripheral", 0.0, 0.0, 0.0, 225);
-  setLedsDelay("eyesPeripheral", 1.0, 1.0, 1.0, 300);
-  setLedsDelay("eyesCenter", 0.0, 0.0, 0.0, 150);
-  setLedsDelay("eyesCenter", 1.0, 1.0, 1.0, 300);
 }
 
 } /* mc_naoqi_dcm */
