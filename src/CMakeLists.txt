@@ -1,6 +1,7 @@
 set(_srcs
     main.cpp
-    mc_naoqi_dcm.cpp
+    # mc_naoqi_dcm.cpp
+    mc_naoqi_dcm_reader.cpp
     RobotModule.cpp
     PepperRobotModule.cpp
 )

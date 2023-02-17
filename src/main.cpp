@@ -4,7 +4,8 @@
 #include <alcommon/altoolsmain.h>
 #include <signal.h>
 #include <boost/shared_ptr.hpp>
-#include "mc_naoqi_dcm.h"
+// #include "mc_naoqi_dcm.h"
+#include "mc_naoqi_dcm_reader.h"
 
 #ifdef _WIN32
 #define ALCALL __declspec(dllexport)

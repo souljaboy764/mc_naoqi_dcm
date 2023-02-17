@@ -110,9 +110,13 @@ MCNAOqiDCM::MCNAOqiDCM(boost::shared_ptr<AL::ALBroker> broker, const std::string
   }catch (const AL::ALError &e){
     throw ALERROR(getName(), "MCNAOqiDCM", "Error on DCM getTime : " + e.toString());
   }
+  // for (unsigned i = 0; i < robot_module.actuators.size(); i++){
+  //   commands[3][i][0][0] = jointPositionCommands[i];
+  //   commands[3][i][0][1] = DCMtime;
+  // }
+  commands[4][0] = DCMtime;
   for (unsigned i = 0; i < robot_module.actuators.size(); i++){
-    commands[3][i][0][0] = jointPositionCommands[i];
-    commands[3][i][0][1] = DCMtime;
+    commands[5][i][0] = jointPositionCommands[i];
   }
   try{
     dcmProxy->setAlias(commands);
@@ -193,13 +197,22 @@ void MCNAOqiDCM::createAliasPrepareCommand(std::string aliasName,
   alias_command.arraySetSize(6);
   alias_command[0] = std::string(aliasName);
   alias_command[1] = std::string(updateType);
-  alias_command[2] = std::string("time-mixed");
-  // placeholder for timed-command values
-  alias_command[3].arraySetSize(mem_keys.size());
+  alias_command[2] = std::string("time-separate");
+  // // placeholder for timed-command values
+  // alias_command[3].arraySetSize(mem_keys.size());
+  // for (int i = 0; i < mem_keys.size(); i++){
+  //   // allocate space for a new value for a memory key to be set via setAlias call
+  //   alias_command[3][i].arraySetSize(1);
+  //   alias_command[3][i][0].arraySetSize(2);
+  // }
+  alias_command[3] = 0; // Importance level. Not yet implemented. Must be set to 0
+  // placeholder for command time
+  alias_command[4].arraySetSize(1);
+  // placeholder for command values
+  alias_command[5].arraySetSize(mem_keys.size());
   for (int i = 0; i < mem_keys.size(); i++){
     // allocate space for a new value for a memory key to be set via setAlias call
-    alias_command[3][i].arraySetSize(1);
-    alias_command[3][i][0].arraySetSize(2);
+    alias_command[5][i].arraySetSize(1);
   }
 }
 
@@ -213,9 +226,14 @@ void MCNAOqiDCM::setStiffness(const float &stiffnessValue)
     throw ALERROR(getName(), "setStiffness()", "Error on DCM getTime : " + e.toString());
   }
 
+  // for(int i=0;i<robot_module.actuators.size();i++){
+  //   jointStiffnessCommands[3][i][0][0] = stiffnessValue;
+  //   jointStiffnessCommands[3][i][0][1] = DCMtime;
+  // }
+  jointStiffnessCommands[4][0] = DCMtime;
+
   for(int i=0;i<robot_module.actuators.size();i++){
-    jointStiffnessCommands[3][i][0][0] = stiffnessValue;
-    jointStiffnessCommands[3][i][0][1] = DCMtime;
+    jointStiffnessCommands[5][i][0] = stiffnessValue;
   }
 
   try{
@@ -287,11 +305,18 @@ void MCNAOqiDCM::synchronisedDCMcallback()
   }
 
 
+  // // XXX make this faster with memcpy?
+  // for (unsigned i = 0; i < robot_module.actuators.size(); i++){
+  //   // new actuator value = latest values from jointPositionCommands
+  //   commands[3][i][0][0] = jointPositionCommands[i];
+  //   commands[3][i][0][1] = DCMtime;
+  // }
+  commands[4][0] = DCMtime;
+
   // XXX make this faster with memcpy?
   for (unsigned i = 0; i < robot_module.actuators.size(); i++){
     // new actuator value = latest values from jointPositionCommands
-    commands[3][i][0][0] = jointPositionCommands[i];
-    commands[3][i][0][1] = DCMtime;
+    commands[5][i][0] = jointPositionCommands[i];
   }
 
   try{
